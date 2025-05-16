@@ -1,73 +1,51 @@
-import { getGlobalData } from '../../utils/global-data';
-import {
-  getPostBySlug,
-} from '../../utils/mdx-utils';
-
-import { MDXRemote } from 'next-mdx-remote';
-import Head from 'next/head';
-import Link from 'next/link';
-import ArrowIcon from '../../components/ArrowIcon';
-import CustomLink from '../../components/CustomLink';
-import Footer from '../../components/Footer';
+import { createClient } from '@supabase/supabase-js';
+import Layout from '../../components/Layout';
 import Header from '../../components/Header';
-import Layout, { GradientBackground } from '../../components/Layout';
+import Footer from '../../components/Footer';
 import SEO from '../../components/SEO';
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
-const components = {
-  a: CustomLink,
-  Head,
-};
+export async function getServerSideProps({ params }) {
+  const { id } = params;
 
-export default function PostPage({
-  posts,
-  globalData,
-}) {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+    console.log('Data:', data);
+    console.log('Error:', error);
+
+  if (error || !data) {
+
+    return { notFound: true };
+  }
+
+  return {
+    props: { post: data },
+  };
+}
+
+export default function PostDetailPage({ post }) {
   return (
     <Layout>
-      <SEO
-        title={`${posts.title} - ${globalData.name}`}
-        description={posts.description}
-      />
-      <Header name={globalData.name} />
-      <article className="px-6 md:px-0">
-        <header>
-          <h1 className="text-3xl md:text-5xl dark:text-white text-center mb-12">
-            {posts?.title}
-          </h1>
-          {posts?.description && (
-            <p className="text-xl mb-4">{posts?.description}</p>
-          )}
-        </header>
-        <main>
-          <article className="prose dark:prose-dark">
-            {posts.body}
-          </article>
-        </main>
-      </article>
-      <Footer copyrightText={globalData.footerText} />
-      <GradientBackground
-        variant="large"
-        className="absolute -top-32 opacity-30 dark:opacity-50"
-      />
-      <GradientBackground
-        variant="small"
-        className="absolute bottom-0 opacity-20 dark:opacity-10"
-      />
+      <SEO title={post.title} description={post.description} />
+      <Header name="Detalhes do Post" />
+      <main className="p-6 max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
+        {post.description && (
+          <p className="text-lg mb-6 text-gray-600">{post.description}</p>
+        )}
+        <div className="prose dark:prose-invert">
+          <p>{post.content}</p>
+        </div>
+      </main>
+      <Footer copyrightText="George © 2025" />
     </Layout>
   );
 }
-
-export const getServerSideProps = async ({ params }) => {
-  const globalData = getGlobalData();
-  const posts = await getPostBySlug(params.id);
- 
-
-  return {
-    props: {
-      globalData,
-      posts,
-    },
-  };
-};
-

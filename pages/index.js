@@ -1,68 +1,56 @@
-import Link from 'next/link';
-import { getPosts } from '../utils/mdx-utils';
-
-import Footer from '../components/Footer';
+import { createClient } from '@supabase/supabase-js';
+import Layout from '../components/Layout';
 import Header from '../components/Header';
-import Layout, { GradientBackground } from '../components/Layout';
-import ArrowIcon from '../components/ArrowIcon';
-import { getGlobalData } from '../utils/global-data';
-import SEO from '../components/SEO';
+import Footer from '../components/Footer';
+import Link from 'next/link';
 
-export default function Index({ posts, globalData }) {
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
+export async function getServerSideProps() {
+  const { data: posts, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  return {
+    props: {
+      posts: posts || [],
+    },
+  };
+}
+
+export default function HomePage({ posts }) {
   return (
     <Layout>
-      <SEO title={globalData.name} description={globalData.blogTitle} />
-      <Header name={globalData.name} />
-      <main className="w-full">
-        <h1 className="text-3xl lg:text-5xl text-center mb-12">
-          {globalData.blogTitle}
-        </h1>
-        <ul className="w-full">
+      <Header name="Página Inicial" />
+      <main className="p-6 max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Posts disponíveis</h1>
+
+        <Link href="/posts/create">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded mb-4">Criar novo post</button>
+        </Link>
+
+        <ul>
           {posts.map((post) => (
-            <li
-              key={post.id}
-              className="md:first:rounded-t-lg md:last:rounded-b-lg backdrop-blur-lg bg-white dark:bg-black dark:bg-opacity-30 bg-opacity-10 hover:bg-opacity-20 dark:hover:bg-opacity-50 transition border border-gray-800 dark:border-white border-opacity-10 dark:border-opacity-10 border-b-0 last:border-b hover:border-b hovered-sibling:border-t-0"
-            >
-              <Link
-                as={`/posts/${post.id}`}
-                href={`/posts/${post.id}`}
-              >
-                <a className="py-6 lg:py-10 px-6 lg:px-16 block focus:outline-none focus:ring-4">
-                  {post.created_ate && (
-                    <p className="uppercase mb-3 font-bold opacity-60">
-                      {post.created_at}
-                    </p>
-                  )}
-                  <h2 className="text-2xl md:text-3xl">{post.title}</h2>
-                  {post.description && (
-                    <p className="mt-3 text-lg opacity-60">
-                      {post.description}
-                    </p>
-                  )}
-                  <ArrowIcon className="mt-4" />
-                </a>
-              </Link>
+            <li key={post.id} className="mb-4 border p-4 rounded">
+              <h2 className="text-xl font-semibold">{post.title}</h2>
+              <p className="text-gray-600">{post.description}</p>
+              <div className="flex gap-2 mt-2">
+                <Link href={`/posts/${post.id}`}>
+                  <button className="bg-green-600 text-white px-3 py-1 rounded">Ver</button>
+                </Link>
+                <Link href={`/posts/delete/${post.id}`}>
+                  <button className="bg-red-600 text-white px-3 py-1 rounded">Excluir</button>
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
       </main>
-      <Footer copyrightText={globalData.footerText} />
-      <GradientBackground
-        variant="large"
-        className="fixed top-20 opacity-40 dark:opacity-60"
-      />
-      <GradientBackground
-        variant="small"
-        className="absolute bottom-0 opacity-20 dark:opacity-10"
-      />
+      <Footer copyrightText="George © 2025" />
     </Layout>
   );
-}
-
-export async function getServerSideProps() {
-  const posts = await getPosts();
-  const globalData = getGlobalData()
-
-
-  return { props: { posts, globalData } };
 }
